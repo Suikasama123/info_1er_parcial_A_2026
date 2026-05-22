@@ -1,0 +1,10 @@
+[project]
+name = "info-1er-parcial-a-2026"
+version = "0.1.0"
+description = "Infografia UPB I/2026 - 1er parcial A (Angry Birds)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "arcade>=3.3.3",
+    "pymunk>=6.9.0",
+]
