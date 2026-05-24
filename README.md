@@ -1,113 +1,97 @@
-# Infografia UPB I/2026 - 1er parcial A (Angry Birds)
+# Angry Birds — Infografia UPB I/2026
 
-## Descripcion
+Clon simplificado de Angry Birds construido con `arcade` (render) y `pymunk` (fisica).
+Trabajo practico del primer parcial, grupo A.
 
-Este repositorio contiene el codigo base para el proyecto de tipo A.
+---
 
-Implementa la mecanica fundamental de un clon de Angry Birds usando
-`arcade` para el render y `pymunk` para la simulacion fisica. Usted
-debera completar el codigo fuente e implementar funcionalidades
-adicionales.
+## Requisitos
 
-## Requisitos y ejecucion
+- [uv](https://docs.astral.sh/uv/) para gestionar el entorno y las dependencias
+- Las dependencias (`arcade`, `pymunk`) se instalan solas al correr el proyecto
 
-Este proyecto usa [uv](https://docs.astral.sh/uv/) para gestionar Python
-y las dependencias. Una vez instalado uv:
+## Como correr
 
 ```bash
-# clone (o forkee) el repositorio y entre a la carpeta
-git clone <su-fork>.git
+git clone <tu-fork>.git
 cd info_1er_parcial_A_2026
-
-# correr el juego (uv crea el entorno automaticamente)
 uv run main.py
 ```
 
-## Tareas
+---
 
-### 1. Implementacion de mecanicas faltantes (`game_logic.py`)
+## Controles
 
-Implemente las siguientes funciones en `game_logic.py`. Las firmas y la
-documentacion ya estan en el archivo; solo escriba el cuerpo donde dice
-`### SU IMPLEMENTACION AQUI ###`.
+| Accion | Control |
+|---|---|
+| Apuntar | Click izquierdo en la resortera y arrastrar |
+| Lanzar | Soltar el mouse |
+| Habilidad especial | Click izquierdo mientras el pajaro esta en vuelo |
+| Siguiente nivel | Enter (cuando el nivel esta completado) |
+| Reiniciar nivel | R |
+| Salir | Escape |
 
-- `get_angle_radians(point_a, point_b)` - angulo en radianes del vector
-  de `point_a` a `point_b`.
-- `get_distance(point_a, point_b)` - distancia euclidiana en pixeles.
-- `get_impulse_vector(start_point, end_point)` - usando las dos
-  anteriores, devuelve el `ImpulseVector` (angulo + magnitud) del
-  lanzamiento.
+---
 
-**Convencion del slingshot:** el usuario hace clic en `start_point`,
-arrastra hasta `end_point` y suelta. El pajaro debe salir disparado en
-la direccion OPUESTA al arrastre (como una resortera real):
+## Pajaros
+
+**Rojo** — pajaro estandar, sin habilidad especial.
+
+**Amarillo** — al hacer click en vuelo acelera en la direccion actual. Solo funciona una vez por lanzamiento.
+
+**Azul** — al hacer click en vuelo se divide en tres pajaros: uno sigue recto, los otros dos salen a +30 y -30 grados. Solo funciona una vez.
+
+---
+
+## Estructura del proyecto
 
 ```
-    start (clic)  *<------ arrastre ------ * end (soltar)
-                   --------> lanzamiento
+info_1er_parcial_A_2026/
+├── main.py              # bucle principal, eventos, niveles
+├── game_object.py       # clases de pajaros, cerdos y estructuras
+├── game_logic.py        # matematica del slingshot
+├── wu_antialiasing.py   # algoritmo de Wu para la linea de arrastre
+└── assets/
+    └── img/             # sprites del juego
 ```
 
-Una vez completada esta parte, pruebe que el lanzamiento basico
-funciona antes de pasar a la siguiente.
+---
 
-### 2. Pajaros con habilidad especial (`game_object.py`)
+## Implementacion
 
-Agregue las clases `YellowBird` y `BlueBird` (stubs ya creados en
-`game_object.py`). Ambos heredan de `Bird` y aniaden una habilidad
-activable mientras estan en vuelo.
+### game_logic.py
 
-- **YellowBird** - al hacer clic izquierdo mientras esta en vuelo,
-  multiplica su impulso por `power_multiplier` (default 2) en la
-  direccion actual de movimiento. Solo una vez por pajaro.
+Tres funciones matematicas para el slingshot:
 
-- **BlueBird** - al hacer clic izquierdo mientras esta en vuelo, se
-  reemplaza por 3 BlueBirds con direcciones separadas +30, 0 y -30
-  grados respecto a la direccion actual. La magnitud de la velocidad se
-  preserva. Solo una vez por pajaro.
+- `get_angle_radians(a, b)` — angulo del vector entre dos puntos usando `atan2`
+- `get_distance(a, b)` — distancia euclidiana entre dos puntos
+- `get_impulse_vector(start, end)` — combina las dos anteriores para calcular direccion y magnitud del lanzamiento. El angulo se invierte (de `end` hacia `start`) para que el pajaro salga en direccion opuesta al arrastre
 
-Sprites recomendados: `assets/img/yellow.png` y `assets/img/blue.png`.
+### game_object.py
 
-> Nota: el ruteo de los clics del mouse vive en `main.py`. Usted debera
-> decidir como diferenciar un "clic para iniciar el arrastre" de un
-> "clic para activar la habilidad del pajaro en vuelo".
+Clases principales:
 
-### 3. (Extra) Sistema de niveles
+- `Bird` / `RedBird` — pajaro base con hitbox circular de 40 px de diametro
+- `YellowBird` — hitbox triangular equilatera de 40 px por lado, orientada hacia la derecha para coincidir con el sprite
+- `BlueBird` — hitbox circular, logica de division en `activate_ability()`
+- `Pig` — hitbox circular, 200 HP, da 500 puntos al eliminarse
+- `Beam` / `Column` — estructuras indestructibles con fisica libre (pueden desplazarse y caer pero no se destruyen)
 
-La logica de lanzamiento y destruccion de objetos esta implementada en
-el codigo base. Como extra, implemente niveles basados en puntaje
-minimo, con transicion entre niveles.
+Todas las hitboxes se pueden visualizar en rojo durante la ejecucion (el codigo de debug esta delimitado con bloques `#################`).
 
-## Criterios de evaluacion
+### wu_antialiasing.py
 
-Al revisar, ejecutaremos `uv run main.py` y verificaremos:
+Implementacion del algoritmo de Wu para la linea de arrastre del slingshot. Por cada columna de pixels dibuja dos pixels vecinos con intensidades complementarias (fraccion y 1 - fraccion), lo que suaviza visualmente el escalon que dejaria Bresenham. La intensidad se mapea directamente al canal alpha del color.
 
-- [ ] El juego arranca sin errores.
-- [ ] `get_angle_radians`, `get_distance` y `get_impulse_vector` estan
-      implementadas y devuelven valores correctos (no los stubs).
-- [ ] Hacer clic + arrastrar + soltar lanza un pajaro en la direccion
-      opuesta al arrastre, con magnitud proporcional a la distancia.
-- [ ] Existe `YellowBird` y, al hacer clic mientras esta en vuelo,
-      acelera una unica vez en la direccion de movimiento.
-- [ ] Existe `BlueBird` y, al hacer clic mientras esta en vuelo, se
-      divide en 3 con angulos +30, 0, -30 grados.
-- [ ] El codigo se ejecuta sin agregar dependencias extra al
-      `pyproject.toml`.
-- [ ] (Extra) Sistema de niveles funcional.
+### Sistema de niveles
 
-## Reglas
+El juego tiene 3 niveles. La condicion para pasar de nivel es eliminar todos los cerdos, no las estructuras. Las estructuras son indestructibles y solo sirven como obstaculo.
 
-- Solo puede usar las dependencias declaradas en `pyproject.toml`
-  (`arcade` y `pymunk`). No agregue `numpy`, `scipy`, etc. - el punto es
-  que usted implemente la matematica.
-- No modifique los assets ni la estructura de directorios.
-- El codigo debe correr con `uv run main.py` sin pasos adicionales.
+---
 
-## Envio del codigo
+## Notas tecnicas
 
-Suba su trabajo a un fork publico de este repositorio. Envie UN solo
-correo por grupo a:
-
-- **Destinatario:** eduardo.laruta+tareas@gmail.com
-- **Asunto:** `1era Evaluacion parcial Infografia - Grupo <nombres>`
-- **Contenido:** nombres y codigos de los integrantes + enlace al
-  repositorio.
+- La resortera esta fija a 300 px del borde izquierdo
+- El arrastre tiene un limite de 200 px de longitud
+- Las estructuras usan `moment_for_box` normal (pueden caer y desplazarse) pero el angulo del sprite se sincroniza con pymunk negando los grados para compensar la diferencia de sentido entre ambos sistemas de coordenadas
+- Los pajaros especiales diferencian el click de habilidad del click de arrastre verificando si hay un pajaro en vuelo antes de iniciar el slingshot
